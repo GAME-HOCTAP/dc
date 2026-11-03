@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Đường Đua Tri Thức - Thu Thập Ngôi Sao</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <!-- Thư viện Supabase JS Client v2 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Nunito', sans-serif; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+    .glass-card { background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(12px); }
+    @keyframes bounce-star {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.25) rotate(10deg); }
+      100% { transform: scale(1) rotate(0deg); }
+    }
+    .star-anim { animation: bounce-star 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    /* Nút 3D nảy cho iPad */
+    .btn-push {
+      transition: all 0.1s ease;
+      cursor: pointer;
+    }
+    .btn-push:active {
+      transform: translateY(2px) scale(0.97);
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-sky-400 via-indigo-500 to-purple-500 min-h-screen text-slate-800 flex flex-col justify-between p-3 md:p-5">
+
+  <!-- Header -->
+  <header class="max-w-6xl mx-auto w-full flex items-center justify-between bg-white/90 backdrop-blur rounded-2xl px-5 py-3 shadow-md mb-3">
+    <div class="flex items-center space-x-3">
+      <span class="text-3xl">🚀</span>
+      <div>
+        <h1 class="text-lg md:text-xl font-black text-indigo-950 uppercase tracking-wide">ĐƯỜNG ĐUA TRI THỨC</h1>
+        <p class="text-xs font-bold text-amber-600 flex items-center gap-1" id="current-station-title">
+          <span>⭐ Trạm 1: Thu thập Ngôi Sao Tri Thức</span>
+        </p>
+      </div>
+    </div>
+    
+    <div class="flex items-center gap-2">
+      <!-- Đèn báo trạng thái kết nối Cloud -->
+      <span id="cloud-status-badge" class="px-3 py-1.5 rounded-full text-xs font-black flex items-center gap-1.5 bg-amber-100 text-amber-800 border border-amber-300">
+        <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span> Đang kết nối Cloud...
+      </span>
+
+      <!-- Nút Cô Giáo -->
+      <button onclick="promptTeacherAuth()" class="btn-push px-3.5 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-xl text-xs font-black text-slate-700 shadow-sm flex items-center gap-1.5">
+        <span>🔒</span> Dành Cho Cô
+      </button>
+    </div>
+  </header>
+
+  <!-- KHUNG THAO TÁC IPAD HỌC SINH -->
+  <main class="max-w-6xl mx-auto w-full flex-1 flex flex-col gap-3">
+
+    <!-- ==================== PHẦN 1 (TRÊN): ĐIỂM SAO TOÀN NHÓM ==================== -->
+    <section class="glass-card rounded-3xl p-4 md:p-5 shadow-xl border-2 border-white/80">
+      <div class="flex flex-col lg:flex-row items-center justify-between gap-4">
+        
+        <!-- Tên Nhóm & Chọn iPad -->
+        <div class="flex items-center gap-3 w-full lg:w-auto justify-between lg:justify-start">
+          <div class="flex items-center gap-3">
+            <div class="w-14 h-14 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-3xl shadow-md" id="group-icon">
+              🦁
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h2 class="text-2xl font-black text-indigo-950 tracking-tight" id="display-group-name">NHÓM LION</h2>
+              </div>
+              <p class="text-xs font-bold text-slate-500">Điểm thi đua tập thể của nhóm</p>
+            </div>
+          </div>
+
+          <!-- Menu chuyển nhóm trên iPad -->
+          <select id="ipad-group-selector" onchange="changeIpadGroup(this.value)" class="bg-indigo-50 border-2 border-indigo-200 text-indigo-900 text-xs font-black rounded-xl px-2.5 py-2 outline-none">
+            <option value="0">iPad: Nhóm Lion 🦁</option>
+            <option value="1">iPad: Nhóm Eagle 🦅</option>
+            <option value="2">iPad: Nhóm Dolphin 🐬</option>
+            <option value="3">iPad: Nhóm Kangaroo 🦘</option>
+          </select>
+        </div>
+
+        <!-- Khung điểm nhóm và Các nút cộng điểm nhóm -->
+        <div class="flex flex-wrap items-center justify-center gap-3 bg-amber-50/90 p-3 rounded-2xl border-2 border-amber-300 w-full lg:w-auto">
+          <!-- Hiển thị điểm số hiện tại -->
+          <div class="text-center px-3 border-r border-amber-200 min-w-[110px]">
+            <span class="text-[11px] font-black text-amber-800 uppercase block tracking-wider">SAO NHÓM</span>
+            <div class="flex items-center justify-center gap-1">
+              <span class="text-4xl font-black text-amber-600 star-anim" id="display-group-stars">0</span>
+              <span class="text-3xl">⭐</span>
+            </div>
+          </div>
+
+          <!-- CÁC Ô MỨC ĐIỂM CỘNG / TRỪ CHO TOÀN NHÓM -->
+          <div class="flex items-center gap-1.5 flex-wrap justify-center">
+            <span class="text-xs font-black text-amber-900 mr-1 hidden sm:inline">Cộng sao nhóm:</span>
+            <button onclick="modifyGroupStars(1)" class="btn-push px-3.5 py-2.5 bg-gradient-to-b from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-white font-black text-base rounded-xl shadow-md border-b-2 border-amber-600 flex items-center gap-1">
+              +1 ⭐
+            </button>
+            <button onclick="modifyGroupStars(2)" class="btn-push px-3.5 py-2.5 bg-gradient-to-b from-orange-400 to-orange-500 hover:from-orange-500 hover:to-orange-600 text-white font-black text-base rounded-xl shadow-md border-b-2 border-orange-600 flex items-center gap-1">
+              +2 ⭐
+            </button>
+            <button onclick="modifyGroupStars(3)" class="btn-push px-3.5 py-2.5 bg-gradient-to-b from-yellow-400 to-amber-500 hover:from-yellow-500 hover:to-amber-600 text-white font-black text-base rounded-xl shadow-md border-b-2 border-amber-600 flex items-center gap-1">
+              +3 ⭐
+            </button>
+            <button onclick="modifyGroupStars(-1)" class="btn-push px-3 py-2.5 bg-slate-200 hover:bg-rose-100 text-slate-700 hover:text-rose-600 font-black text-xs rounded-xl border border-slate-300">
+              -1 Sửa
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==================== PHẦN 2 (DƯỚI): THÀNH VIÊN VÀ SAO CÁ NHÂN ==================== -->
+    <section class="glass-card rounded-3xl p-4 md:p-5 shadow-xl border-2 border-white/80 flex-1 flex flex-col justify-between">
+      
+      <!-- Danh sách thành viên -->
+      <div>
+        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-3 mb-3">
+          <div>
+            <h3 class="text-base md:text-lg font-black text-slate-800 flex items-center gap-2">
+              <span>👥</span> THÀNH VIÊN TRONG NHÓM (<span id="member-count">0</span> bạn)
+            </h3>
+            <p class="text-xs text-slate-500 font-semibold">Chạm vào tên để chọn 1 bạn, nhiều bạn hoặc cả nhóm</p>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button onclick="selectAllMembers(true)" class="btn-push px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-black text-xs rounded-xl border border-indigo-200">
+              ✓ Chọn Hết
+            </button>
+            <button onclick="selectAllMembers(false)" class="btn-push px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-black text-xs rounded-xl">
+              ✕ Bỏ Chọn
+            </button>
+          </div>
+        </div>
+
+        <!-- Lưới thẻ thành viên -->
+        <div id="students-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-3 max-h-[350px] overflow-y-auto p-1">
+          <!-- Render danh sách động -->
+        </div>
+      </div>
+
+      <!-- Thanh chọn mức sao và Thưởng sao cá nhân -->
+      <div class="mt-3 pt-3 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 bg-white/80 p-3 rounded-2xl">
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-black text-slate-700">Mức sao cá nhân:</span>
+          <div class="flex items-center gap-1.5" id="student-star-levels-container">
+            <button onclick="selectStarLevel(1)" data-star="1" class="stu-star-btn btn-push px-3 py-1.5 rounded-xl font-black text-sm border-2 border-amber-500 bg-amber-100 text-amber-900 shadow-sm">+1 ⭐</button>
+            <button onclick="selectStarLevel(2)" data-star="2" class="stu-star-btn btn-push px-3 py-1.5 rounded-xl font-black text-sm border-2 border-transparent bg-slate-100 text-slate-700">+2 ⭐</button>
+            <button onclick="selectStarLevel(3)" data-star="3" class="stu-star-btn btn-push px-3 py-1.5 rounded-xl font-black text-sm border-2 border-transparent bg-slate-100 text-slate-700">+3 ⭐</button>
+          </div>
+          <span id="selected-count-badge" class="ml-2 font-black text-xs text-indigo-800 bg-indigo-100 px-3 py-1.5 rounded-full">Đang chọn: 0 bạn</span>
+        </div>
+
+        <!-- Nút thao tác sao cá nhân -->
+        <div class="flex items-center gap-2">
+          <button onclick="applyStarsToSelected(-1)" class="btn-push px-4 py-2.5 bg-slate-100 hover:bg-rose-100 text-slate-700 hover:text-rose-600 font-bold text-xs rounded-xl border border-slate-200">
+            - Bớt Sao
+          </button>
+          <button onclick="applyStarsToSelected(1)" class="btn-push px-6 py-2.5 bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500 text-white font-black text-sm rounded-xl shadow-lg shadow-amber-500/30 flex items-center gap-1.5">
+            <span>⭐</span> THƯỞNG SAO CHO BẠN ĐÃ CHỌN
+          </button>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <footer class="text-center py-2 text-xs text-white/90 font-bold">
+    Giao diện iPad • Chúc các con hoàn thành thật tốt nhiệm vụ!
+  </footer>
+
+  <!-- ==================== KHU VỰC CỦA CÔ (MẬT MÃ: 12345) ==================== -->
+  <div id="modal-teacher" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b pb-3 mb-4">
+        <h2 class="text-xl font-black text-slate-800 flex items-center gap-2">
+          <span>👩‍🏫</span> Trung Tâm Quản Lý Của Cô
+        </h2>
+        <button onclick="closeModal('modal-teacher')" class="text-slate-400 hover:text-slate-600 text-2xl font-bold">&times;</button>
+      </div>
+
+      <!-- 3 Nút Tính Năng Độc Quyền -->
+      <div class="grid grid-cols-3 gap-3 mb-5">
+        <button onclick="openLeaderboard()" class="btn-push p-3.5 bg-amber-50 hover:bg-amber-100 border-2 border-amber-300 rounded-2xl flex flex-col items-center text-center">
+          <span class="text-2xl mb-1">📊</span>
+          <span class="text-xs font-black text-amber-950">Bảng Xếp Hạng</span>
+        </button>
+        <button onclick="openRandomPickerModal()" class="btn-push p-3.5 bg-purple-50 hover:bg-purple-100 border-2 border-purple-300 rounded-2xl flex flex-col items-center text-center">
+          <span class="text-2xl mb-1">🎲</span>
+          <span class="text-xs font-black text-purple-950">Gọi Ngẫu Nhiên</span>
+        </button>
+        <button onclick="startCeremony()" class="btn-push p-3.5 bg-rose-50 hover:bg-rose-100 border-2 border-rose-300 rounded-2xl flex flex-col items-center text-center">
+          <span class="text-2xl mb-1">🏆</span>
+          <span class="text-xs font-black text-rose-950">VINH DANH</span>
+        </button>
+      </div>
+
+      <!-- Đổi tên trạm / nhiệm vụ -->
+      <div class="mb-5 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+        <label class="block text-xs font-black text-slate-700 mb-1.5">Tên Trạm / Nhiệm vụ đang học:</label>
+        <div class="flex gap-2">
+          <input type="text" id="teacher-station-input" class="flex-1 border rounded-xl px-3 py-2 text-sm font-bold outline-indigo-500">
+          <button onclick="updateStationTitle()" class="btn-push px-4 py-2 bg-indigo-600 text-white text-xs font-black rounded-xl">Lưu Tên</button>
+        </div>
+      </div>
+
+      <!-- Xóa sao về 0 -->
+      <div class="p-4 bg-rose-50 border border-rose-200 rounded-2xl mb-5 flex items-center justify-between">
+        <div>
+          <h4 class="font-black text-rose-800 text-sm">Xóa số sao làm lại từ đầu</h4>
+          <p class="text-xs text-rose-600">Đưa toàn bộ sao nhóm và sao học sinh về 0</p>
+        </div>
+        <button onclick="resetAllScoresToZero()" class="btn-push px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-black rounded-xl text-xs shadow">
+          ⚠️ Xóa Về 0 Sao
+        </button>
+      </div>
+
+      <!-- Phân chia 4 nhóm -->
+      <div>
+        <label class="text-xs font-black text-slate-700 block mb-2">Danh sách thành viên 4 nhóm (Mỗi dòng 1 bạn):</label>
+        <div class="grid grid-cols-2 gap-3 mb-4">
+          <div>
+            <span class="text-xs font-black text-indigo-900 block mb-1">Nhóm Lion 🦁</span>
+            <textarea id="group-edit-0" class="w-full h-24 border rounded-xl p-2 text-xs font-bold"></textarea>
+          </div>
+          <div>
+            <span class="text-xs font-black text-indigo-900 block mb-1">Nhóm Eagle 🦅</span>
+            <textarea id="group-edit-1" class="w-full h-24 border rounded-xl p-2 text-xs font-bold"></textarea>
+          </div>
+          <div>
+            <span class="text-xs font-black text-indigo-900 block mb-1">Nhóm Dolphin 🐬</span>
+            <textarea id="group-edit-2" class="w-full h-24 border rounded-xl p-2 text-xs font-bold"></textarea>
+          </div>
+          <div>
+            <span class="text-xs font-black text-indigo-900 block mb-1">Nhóm Kangaroo 🦘</span>
+            <textarea id="group-edit-3" class="w-full h-24 border rounded-xl p-2 text-xs font-bold"></textarea>
+          </div>
+        </div>
+        <button onclick="saveStudentRosters()" class="btn-push w-full py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-black rounded-xl text-sm shadow">
+          Lưu Phân Nhóm Mới
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: GỌI NGẪU NHIÊN -->
+  <div id="modal-random" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl text-center">
+      <div class="flex justify-between items-center border-b pb-3 mb-4">
+        <h3 class="text-lg font-black text-slate-800 flex items-center gap-2">
+          <span>🎲</span> Vòng Quay Gọi Ngẫu Nhiên
+        </h3>
+        <button onclick="closeModal('modal-random')" class="text-slate-400 hover:text-slate-600 text-2xl font-bold">&times;</button>
+      </div>
+      
+      <div class="space-y-3 mb-4 text-left">
+        <div>
+          <label class="text-xs font-black text-slate-600 block mb-1">Đối tượng gọi:</label>
+          <div class="grid grid-cols-2 gap-2">
+            <button onclick="setPickerTarget('student')" id="btn-target-student" class="py-2 rounded-xl text-xs font-black border-2 border-purple-500 bg-purple-50 text-purple-700">
+              👤 Học Sinh
+            </button>
+            <button onclick="setPickerTarget('group')" id="btn-target-group" class="py-2 rounded-xl text-xs font-bold border-2 border-transparent bg-slate-100 text-slate-600">
+              🚩 Toàn Bộ 1 Nhóm
+            </button>
+          </div>
+        </div>
+
+        <div id="student-picker-options" class="grid grid-cols-2 gap-2 pt-1">
+          <div>
+            <label class="text-xs font-black text-slate-600 block mb-1">Phạm vi:</label>
+            <select id="picker-scope" class="w-full bg-slate-50 border rounded-xl px-2 py-1.5 text-xs font-bold text-slate-700 outline-none">
+              <option value="all">Toàn bộ học sinh</option>
+              <option value="current">Chỉ trong Nhóm hiện tại</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-xs font-black text-slate-600 block mb-1">Số bạn cần gọi:</label>
+            <select id="picker-count" class="w-full bg-slate-50 border rounded-xl px-2 py-1.5 text-xs font-bold text-slate-700 outline-none">
+              <option value="1">1 Bạn</option>
+              <option value="2">2 Bạn</option>
+              <option value="3">3 Bạn</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="py-6 px-4 bg-slate-50 border-2 border-dashed border-indigo-200 rounded-2xl mb-4 flex items-center justify-center min-h-[120px]">
+        <div id="random-result-box" class="flex flex-wrap gap-2 items-center justify-center text-center">
+          <span class="text-slate-400 font-bold text-sm">Bấm nút bên dưới để bốc thăm!</span>
+        </div>
+      </div>
+
+      <button onclick="executeSpin()" id="btn-start-spin" class="btn-push w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black rounded-2xl shadow-lg text-base">
+        BẮT ĐẦU BỐC THĂM 🎲
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL: BẢNG XẾP HẠNG -->
+  <div id="modal-leaderboard" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-4xl w-full p-6 shadow-2xl max-h-[90vh] flex flex-col">
+      <div class="flex items-center justify-between border-b pb-3 mb-4">
+        <h2 class="text-xl font-black text-slate-800 flex items-center gap-2">
+          <span>📊</span> Bảng Xếp Hạng Ngôi Sao
+        </h2>
+        <button onclick="closeModal('modal-leaderboard')" class="text-slate-400 text-2xl font-bold">&times;</button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5 overflow-y-auto pr-1">
+        <div class="bg-indigo-50/60 p-4 rounded-2xl border border-indigo-100">
+          <h3 class="font-black text-indigo-900 mb-3">🚩 Xếp Hạng 4 Nhóm (Sao Nhiệm Vụ)</h3>
+          <div id="rank-group-list" class="space-y-2"></div>
+        </div>
+
+        <div class="bg-amber-50/60 p-4 rounded-2xl border border-amber-100">
+          <h3 class="font-black text-amber-900 mb-3">🌟 Top Cá Nhân Xuất Sắc Nhất</h3>
+          <div id="rank-student-list" class="space-y-2 max-h-[360px] overflow-y-auto pr-1"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: VINH DANH -->
+  <div id="modal-ceremony" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden flex flex-col items-center justify-center p-4 text-white">
+    <button onclick="closeModal('modal-ceremony')" class="absolute top-6 right-6 text-white/60 hover:text-white text-3xl font-bold">&times;</button>
+    
+    <div class="text-center max-w-2xl w-full">
+      <div class="inline-block px-4 py-1 bg-yellow-500/20 text-yellow-300 border border-yellow-500/40 rounded-full font-black text-xs uppercase mb-2">
+        🏆 Lễ Vinh Danh Ngôi Sao Tri Thức
+      </div>
+      <h2 class="text-3xl md:text-5xl font-black mb-6 text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-200 to-orange-300">
+        NGÔI SAO SÁNG NHẤT
+      </h2>
+
+      <div id="ceremony-stage" class="space-y-4"></div>
+
+      <div class="mt-8 flex justify-center">
+        <button id="btn-next-reveal" onclick="nextRevealStep()" class="btn-push px-8 py-3.5 bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 font-black rounded-2xl shadow-xl text-base">
+          Mở Giải Tiếp Theo 🌟
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ==================== CẤU HÌNH SUPABASE TRỰC TIẾP ====================
+    const SUPABASE_URL = "https://kurjbsynguzzpsbywcsf.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_YCcRFrA3uT_6mPYmV6rt2Q_Baru2Dqw";
+    const ROOM_ID = "phong_hoc_lop2";
+    const STORAGE_KEY = "DUONG_DUA_TRI_THUC_V4";
+
+    let supabaseClient = null;
+    let isRemoteUpdating = false;
+
+    // Danh sách 20 học sinh chuẩn xác theo 4 nhóm
+    const DEFAULT_DATA = {
+      station: "Trạm 1: Khởi động hào hứng",
+      groups: [
+        { id: 0, name: "Nhóm Lion", icon: "🦁", groupStars: 0, members: ["BÙI GIA BẢO", "NGUYỄN TRẦN KHẢ HÂN", "NGỤY AN TUỆ", "LÊ DƯƠNG UY VŨ", "LƯU GIA VY"] },
+        { id: 1, name: "Nhóm Eagle", icon: "🦅", groupStars: 0, members: ["LÊ NGỌC TRÂM ANH", "NGUYỄN LÊ MINH ĐĂNG", "HOÀNG THIỆN ĐỨC", "PHẠM TRẦN NGỌC HÂN", "PHẠM HIỂU LAM", "NGÔ KỲ ĐÔNG NGHI"] },
+        { id: 2, name: "Nhóm Dolphin", icon: "🐬", groupStars: 0, members: ["LƯU HOÀNG ANH", "DƯƠNG QUANG KHẢI", "NGUYỄN THƯỜNG PHÚC", "NGUYỄN PHẠM MINH QUÂN"] },
+        { id: 3, name: "Nhóm Kangaroo", icon: "🦘", groupStars: 0, members: ["NGÔ MINH CHÂU", "LỤC NGỌC HÂN", "BÙI NGỌC MINH KHUÊ", "LÊ HỒNG SANG", "ĐINH GIA THÀNH"] }
+      ],
+      studentStars: {
+        "BÙI GIA BẢO": 0, "NGUYỄN TRẦN KHẢ HÂN": 0, "NGỤY AN TUỆ": 0, "LÊ DƯƠNG UY VŨ": 0, "LƯU GIA VY": 0,
+        "LÊ NGỌC TRÂM ANH": 0, "NGUYỄN LÊ MINH ĐĂNG": 0, "HOÀNG THIỆN ĐỨC": 0, "PHẠM TRẦN NGỌC HÂN": 0, "PHẠM HIỂU LAM": 0, "NGÔ KỲ ĐÔNG NGHI": 0,
+        "LƯU HOÀNG ANH": 0, "DƯƠNG QUANG KHẢI": 0, "NGUYỄN THƯỜNG PHÚC": 0, "NGUYỄN PHẠM MINH QUÂN": 0,
+        "NGÔ MINH CHÂU": 0, "LỤC NGỌC HÂN": 0, "BÙI NGỌC MINH KHUÊ": 0, "LÊ HỒNG SANG": 0, "ĐINH GIA THÀNH": 0
+      }
+    };
+
+    let appData = DEFAULT_DATA;
+    try {
+      const cached = localStorage.getItem(STORAGE_KEY);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed && parsed.groups && parsed.groups.length === 4) appData = parsed;
+      }
+    } catch (e) {
+      appData = DEFAULT_DATA;
+    }
+
+    let currentIpadGroup = parseInt(localStorage.getItem("CURRENT_IPAD_GROUP") || 0);
+    if (isNaN(currentIpadGroup) || currentIpadGroup < 0 || currentIpadGroup > 3) currentIpadGroup = 0;
+    
+    let selectedStudents = new Set();
+    let currentSelectedStarLevel = 1;
+
+    // Âm thanh Web Audio API
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playTone(freq, type = 'sine', duration = 0.1, gainVal = 0.2) {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+      gain.gain.setValueAtTime(gainVal, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + duration);
+    }
+
+    function soundTing() {
+      playTone(523.25, 'triangle', 0.1, 0.25);
+      setTimeout(() => playTone(659.25, 'sine', 0.15, 0.3), 80);
+      setTimeout(() => playTone(783.99, 'sine', 0.25, 0.35), 160);
+    }
+
+    function soundGentleDeduct() {
+      playTone(330, 'sine', 0.18, 0.15);
+      setTimeout(() => playTone(260, 'sine', 0.2, 0.12), 120);
+    }
+
+    function soundFanfare() {
+      [440, 554, 659, 880].forEach((freq, idx) => {
+        setTimeout(() => playTone(freq, 'triangle', 0.3, 0.35), idx * 160);
+      });
+    }
+
+    // ==================== ĐỒNG BỘ CLOUD VỚI SUPABASE ====================
+    async function initSupabase() {
+      try {
+        if (!window.supabase) return;
+        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        const badge = document.getElementById('cloud-status-badge');
+        badge.className = "px-3 py-1.5 rounded-full text-xs font-black flex items-center gap-1.5 bg-emerald-100 text-emerald-800 border border-emerald-300";
+        badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span> 🟢 Supabase Online`;
+
+        const { data } = await supabaseClient
+          .from('class_race')
+          .select('state')
+          .eq('id', ROOM_ID)
+          .single();
+
+        if (data && data.state && data.state.groups) {
+          appData = data.state;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+          renderUI();
+        } else {
+          await supabaseClient.from('class_race').upsert({ id: ROOM_ID, state: appData });
+        }
+
+        // Lắng nghe thay đổi Realtime tức thì
+        supabaseClient
+          .channel('public:class_race')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'class_race', filter: `id=eq.${ROOM_ID}` }, payload => {
+            if (payload.new && payload.new.state) {
+              isRemoteUpdating = true;
+              appData = payload.new.state;
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+              renderUI();
+              isRemoteUpdating = false;
+            }
+          })
+          .subscribe();
+
+      } catch (err) {
+        console.error("Supabase Error:", err);
+      }
+    }
+
+    async function pushDataToCloud() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+      if (supabaseClient && !isRemoteUpdating) {
+        try {
+          await supabaseClient.from('class_race').upsert({
+            id: ROOM_ID,
+            state: appData,
+            updated_at: new Date().toISOString()
+          });
+        } catch (e) {
+          console.error("Lỗi gửi Supabase:", e);
+        }
+      }
+    }
+
+    function init() {
+      renderUI();
+      initSupabase();
+    }
+
+    function renderUI() {
+      document.getElementById('current-station-title').innerHTML = `<span>⭐ ${appData.station}</span>`;
+      document.getElementById('ipad-group-selector').value = currentIpadGroup;
+      renderCurrentGroupWorkspace();
+    }
+
+    function selectStarLevel(val) {
+      currentSelectedStarLevel = val;
+      document.querySelectorAll('.stu-star-btn').forEach(btn => {
+        const btnStar = parseInt(btn.getAttribute('data-star'));
+        btn.className = (btnStar === val)
+          ? "stu-star-btn btn-push px-3 py-1.5 rounded-xl font-black text-sm border-2 border-amber-500 bg-amber-100 text-amber-900 shadow-sm"
+          : "stu-star-btn btn-push px-3 py-1.5 rounded-xl font-black text-sm border-2 border-transparent bg-slate-100 text-slate-700";
+      });
+    }
+
+    function changeIpadGroup(newGroupId) {
+      currentIpadGroup = parseInt(newGroupId);
+      localStorage.setItem("CURRENT_IPAD_GROUP", currentIpadGroup);
+      selectedStudents.clear();
+      renderCurrentGroupWorkspace();
+    }
+
+    function renderCurrentGroupWorkspace() {
+      const group = appData.groups[currentIpadGroup] || appData.groups[0];
+      
+      // Render Phần 1 (Trên): Nhóm
+      document.getElementById('display-group-name').textContent = group.name.toUpperCase();
+      document.getElementById('display-group-stars').textContent = group.groupStars || 0;
+      document.getElementById('group-icon').textContent = group.icon || "🌟";
+      document.getElementById('member-count').textContent = group.members.length;
+
+      // Render Phần 2 (Dưới): Thành viên
+      const grid = document.getElementById('students-grid');
+      grid.innerHTML = '';
+
+      group.members.forEach(name => {
+        const stars = appData.studentStars[name] || 0;
+        const isSelected = selectedStudents.has(name);
+
+        const card = document.createElement('div');
+        card.className = `p-3 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between items-center select-none active:scale-95 ${
+          isSelected 
+            ? 'border-amber-500 bg-amber-50 shadow-md ring-2 ring-amber-300' 
+            : 'border-slate-200 bg-white hover:border-slate-300'
+        }`;
+        // Gán sự kiện trực tiếp đảm bảo nhận cảm ứng tức thì
+        card.onclick = () => toggleSelectStudent(name);
+
+        card.innerHTML = `
+          <div class="w-full flex items-center justify-between pointer-events-none">
+            <span class="w-3.5 h-3.5 rounded-full ${isSelected ? 'bg-amber-500' : 'bg-slate-200'} border border-white"></span>
+            <span class="text-xs font-black px-2 py-0.5 rounded-lg ${stars > 0 ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-500'}">
+              ${stars} ⭐
+            </span>
+          </div>
+          <div class="my-2 text-center pointer-events-none">
+            <div class="text-3xl mb-1">${getAvatar(name)}</div>
+            <div class="font-black text-slate-800 text-xs md:text-sm truncate max-w-[110px]">${name}</div>
+          </div>
+          <div class="text-[11px] font-bold pointer-events-none ${isSelected ? 'text-amber-700' : 'text-slate-400'}">${isSelected ? '✓ Đã chọn' : 'Chạm chọn'}</div>
+        `;
+        grid.appendChild(card);
+      });
+
+      document.getElementById('selected-count-badge').textContent = `Đang chọn: ${selectedStudents.size} bạn`;
+    }
+
+    function getAvatar(name) {
+      const avatars = ["🐬", "🦁", "🦅", "🦘", "🐢", "🐠", "🦀", "🐙", "🐳", "🐧", "⭐"];
+      let hash = 0;
+      for (let i = 0; i < name.length; i++) hash += name.charCodeAt(i);
+      return avatars[hash % avatars.length];
+    }
+
+    function toggleSelectStudent(name) {
+      if (selectedStudents.has(name)) selectedStudents.delete(name);
+      else selectedStudents.add(name);
+      renderCurrentGroupWorkspace();
+    }
+
+    function selectAllMembers(doSelect) {
+      if (doSelect) appData.groups[currentIpadGroup].members.forEach(m => selectedStudents.add(m));
+      else selectedStudents.clear();
+      renderCurrentGroupWorkspace();
+    }
+
+    // Thao tác Sao Toàn Nhóm
+    function modifyGroupStars(starsToAdd) {
+      appData.groups[currentIpadGroup].groupStars = Math.max(0, (appData.groups[currentIpadGroup].groupStars || 0) + starsToAdd);
+      if (starsToAdd > 0) soundTing();
+      else soundGentleDeduct();
+      pushDataToCloud();
+      renderCurrentGroupWorkspace();
+    }
+
+    // Thao tác Sao Cá Nhân
+    function applyStarsToSelected(multiplier) {
+      if (selectedStudents.size === 0) {
+        alert("Em hãy chạm vào tên bạn để thưởng sao nhé!");
+        return;
+      }
+      const change = currentSelectedStarLevel * multiplier;
+      selectedStudents.forEach(name => {
+        const cur = appData.studentStars[name] || 0;
+        appData.studentStars[name] = Math.max(0, cur + change);
+      });
+
+      if (multiplier > 0) soundTing();
+      else soundGentleDeduct();
+
+      pushDataToCloud();
+      renderCurrentGroupWorkspace();
+    }
+
+    // ==================== KHU VỰC CỦA CÔ (MẬT MÃ: 12345) ====================
+    function promptTeacherAuth() {
+      const pin = prompt("Nhập mã bảo vệ của Cô (12345):", "");
+      if (pin === "12345") {
+        document.getElementById('teacher-station-input').value = appData.station;
+        for (let i = 0; i < 4; i++) {
+          document.getElementById(`group-edit-${i}`).value = (appData.groups[i]?.members || []).join("\n");
+        }
+        document.getElementById('modal-teacher').classList.remove('hidden');
+      } else if (pin !== null) {
+        alert("Mã bảo vệ chưa đúng!");
+      }
+    }
+
+    function updateStationTitle() {
+      const val = document.getElementById('teacher-station-input').value.trim();
+      if (val) {
+        appData.station = val;
+        pushDataToCloud();
+        document.getElementById('current-station-title').innerHTML = `<span>⭐ ${val}</span>`;
+        alert("Đã đổi tên Trạm thành công!");
+      }
+    }
+
+    function saveStudentRosters() {
+      for (let i = 0; i < 4; i++) {
+        const lines = document.getElementById(`group-edit-${i}`).value.split("\n").map(s => s.trim()).filter(s => s.length > 0);
+        appData.groups[i].members = lines;
+        lines.forEach(name => {
+          if (appData.studentStars[name] === undefined) appData.studentStars[name] = 0;
+        });
+      }
+      pushDataToCloud();
+      renderCurrentGroupWorkspace();
+      alert("Đã lưu phân nhóm mới thành công!");
+      closeModal('modal-teacher');
+    }
+
+    function resetAllScoresToZero() {
+      if (confirm("Cô có chắc chắn muốn đưa toàn bộ số sao nhóm và sao cá nhân về 0?")) {
+        appData.groups.forEach(g => g.groupStars = 0);
+        Object.keys(appData.studentStars).forEach(name => {
+          appData.studentStars[name] = 0;
+        });
+        pushDataToCloud();
+        renderCurrentGroupWorkspace();
+        alert("Đã đưa toàn bộ số sao về 0 trên tất cả các máy!");
+        closeModal('modal-teacher');
+      }
+    }
+
+    // ==================== GỌI NGẪU NHIÊN ====================
+    let pickerTarget = 'student';
+
+    function openRandomPickerModal() {
+      closeModal('modal-teacher');
+      document.getElementById('modal-random').classList.remove('hidden');
+      document.getElementById('random-result-box').innerHTML = `<span class="text-slate-400 font-bold text-sm">Bấm nút bên dưới để bốc thăm!</span>`;
+    }
+
+    function setPickerTarget(target) {
+      pickerTarget = target;
+      const btnStu = document.getElementById('btn-target-student');
+      const btnGrp = document.getElementById('btn-target-group');
+      const opt = document.getElementById('student-picker-options');
+
+      if (target === 'student') {
+        btnStu.className = "py-2 rounded-xl text-xs font-black border-2 border-purple-500 bg-purple-50 text-purple-700";
+        btnGrp.className = "py-2 rounded-xl text-xs font-bold border-2 border-transparent bg-slate-100 text-slate-600";
+        opt.classList.remove('hidden');
+      } else {
+        btnGrp.className = "py-2 rounded-xl text-xs font-black border-2 border-emerald-500 bg-emerald-50 text-emerald-700";
+        btnStu.className = "py-2 rounded-xl text-xs font-bold border-2 border-transparent bg-slate-100 text-slate-600";
+        opt.classList.add('hidden');
+      }
+    }
+
+    function executeSpin() {
+      const resultBox = document.getElementById('random-result-box');
+      const btnSpin = document.getElementById('btn-start-spin');
+      btnSpin.disabled = true;
+
+      let candidateList = [];
+      let countNeeded = 1;
+
+      if (pickerTarget === 'group') {
+        candidateList = appData.groups.map(g => g.name);
+        countNeeded = 1;
+      } else {
+        const scope = document.getElementById('picker-scope').value;
+        countNeeded = parseInt(document.getElementById('picker-count').value);
+
+        if (scope === 'all') candidateList = Object.keys(appData.studentStars);
+        else candidateList = [...appData.groups[currentIpadGroup].members];
+      }
+
+      if (candidateList.length === 0) {
+        resultBox.innerHTML = `<span class="text-rose-500 font-bold">Danh sách đang trống!</span>`;
+        btnSpin.disabled = false;
+        return;
+      }
+
+      countNeeded = Math.min(countNeeded, candidateList.length);
+
+      let ticks = 0;
+      const timer = setInterval(() => {
+        playTone(550, 'sine', 0.05, 0.08);
+        const shuffled = [...candidateList].sort(() => 0.5 - Math.random()).slice(0, countNeeded);
+
+        if (pickerTarget === 'group') {
+          resultBox.innerHTML = `
+            <div class="px-6 py-3 bg-emerald-100 border border-emerald-300 rounded-2xl text-emerald-800 text-3xl font-black">
+              🚩 ${shuffled[0]}
+            </div>
+          `;
+        } else {
+          resultBox.innerHTML = shuffled.map(name => `
+            <span class="inline-block px-4 py-2 bg-indigo-100 border border-indigo-200 text-indigo-900 rounded-xl font-black text-xl shadow-sm">
+              ${name}
+            </span>
+          `).join(" ");
+        }
+
+        ticks++;
+        if (ticks >= 18) {
+          clearInterval(timer);
+          btnSpin.disabled = false;
+          soundTing();
+          confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
+        }
+      }, 70);
+    }
+
+    // ==================== BẢNG XẾP HẠNG ====================
+    function openLeaderboard() {
+      closeModal('modal-teacher');
+      const sortedGroups = [...appData.groups].sort((a, b) => (b.groupStars || 0) - (a.groupStars || 0));
+      const groupListEl = document.getElementById('rank-group-list');
+      groupListEl.innerHTML = '';
+      sortedGroups.forEach((g, idx) => {
+        const medal = idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : "🚩";
+        groupListEl.innerHTML += `
+          <div class="flex items-center justify-between p-3 bg-white rounded-xl border border-indigo-100 shadow-sm">
+            <div class="flex items-center gap-2">
+              <span class="text-xl">${medal}</span>
+              <span class="font-extrabold text-slate-800">${g.name}</span>
+            </div>
+            <span class="font-black text-amber-600 text-lg">${g.groupStars || 0} ⭐</span>
+          </div>
+        `;
+      });
+
+      const studentArr = Object.keys(appData.studentStars).map(name => ({
+        name, stars: appData.studentStars[name] || 0
+      })).sort((a, b) => b.stars - a.stars);
+
+      const stuListEl = document.getElementById('rank-student-list');
+      stuListEl.innerHTML = '';
+      studentArr.forEach((s, idx) => {
+        const badge = idx === 0 ? "👑" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : `#${idx + 1}`;
+        stuListEl.innerHTML += `
+          <div class="flex items-center justify-between p-2.5 bg-white rounded-xl border border-amber-100">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-black w-6 text-center text-slate-400">${badge}</span>
+              <span class="font-bold text-slate-800 text-sm">${s.name}</span>
+            </div>
+            <span class="font-black text-amber-600 text-sm">${s.stars} ⭐</span>
+          </div>
+        `;
+      });
+
+      document.getElementById('modal-leaderboard').classList.remove('hidden');
+    }
+
+    // ==================== VINH DANH ====================
+    let revealStep = 0;
+    let ceremonyTopStudents = [];
+    let ceremonyTopGroup = null;
+
+    function startCeremony() {
+      closeModal('modal-teacher');
+      revealStep = 0;
+      const sortedStudents = Object.keys(appData.studentStars).map(name => ({
+        name, stars: appData.studentStars[name] || 0
+      })).sort((a, b) => b.stars - a.stars);
+
+      ceremonyTopStudents = sortedStudents.slice(0, 3);
+      ceremonyTopGroup = [...appData.groups].sort((a, b) => (b.groupStars || 0) - (a.groupStars || 0))[0];
+
+      document.getElementById('modal-ceremony').classList.remove('hidden');
+      document.getElementById('ceremony-stage').innerHTML = `<p class="text-slate-300">Cả lớp cùng hướng lên màn hình chào đón các nhà vô địch!</p>`;
+      document.getElementById('btn-next-reveal').classList.remove('hidden');
+      document.getElementById('btn-next-reveal').textContent = "Vinh danh Cá nhân Hạng 3 🥉";
+    }
+
+    function nextRevealStep() {
+      revealStep++;
+      const stage = document.getElementById('ceremony-stage');
+      const btn = document.getElementById('btn-next-reveal');
+
+      if (revealStep === 1) {
+        const s = ceremonyTopStudents[2] || { name: "...", stars: 0 };
+        stage.innerHTML = `
+          <div class="bg-amber-900/40 border border-amber-600/50 p-5 rounded-3xl max-w-sm mx-auto star-anim">
+            <span class="text-4xl">🥉</span>
+            <h3 class="text-lg font-bold text-amber-200 mt-1">HẠNG BA CÁ NHÂN</h3>
+            <p class="text-3xl font-black text-white mt-1">${s.name}</p>
+            <p class="text-amber-300 font-bold">${s.stars} ⭐</p>
+          </div>
+        `;
+        soundTing();
+        btn.textContent = "Vinh danh Cá nhân Hạng 2 🥈";
+      } else if (revealStep === 2) {
+        const s = ceremonyTopStudents[1] || { name: "...", stars: 0 };
+        stage.innerHTML += `
+          <div class="bg-slate-700/50 border border-slate-400/50 p-5 rounded-3xl max-w-sm mx-auto star-anim mt-2">
+            <span class="text-4xl">🥈</span>
+            <h3 class="text-lg font-bold text-slate-200 mt-1">HẠNG NHÌ CÁ NHÂN</h3>
+            <p class="text-3xl font-black text-white mt-1">${s.name}</p>
+            <p class="text-slate-300 font-bold">${s.stars} ⭐</p>
+          </div>
+        `;
+        soundTing();
+        btn.textContent = "Vinh danh Cá nhân Quán Quân 👑";
+      } else if (revealStep === 3) {
+        const s = ceremonyTopStudents[0] || { name: "...", stars: 0 };
+        stage.innerHTML += `
+          <div class="bg-gradient-to-r from-amber-500/40 to-yellow-500/40 border-2 border-yellow-400 p-6 rounded-3xl max-w-md mx-auto star-anim mt-2 shadow-2xl">
+            <span class="text-5xl">👑</span>
+            <h3 class="text-xl font-black text-yellow-300 mt-1">QUÁN QUÂN NGÔI SAO</h3>
+            <p class="text-4xl font-black text-white mt-1">${s.name}</p>
+            <p class="text-yellow-200 text-base font-extrabold">${s.stars} ⭐</p>
+          </div>
+        `;
+        soundFanfare();
+        confetti({ particleCount: 70, spread: 70, origin: { y: 0.6 } });
+        btn.textContent = "🏆 VINH DANH NHÓM VÔ ĐỊCH 🏆";
+      } else if (revealStep === 4) {
+        stage.innerHTML = `
+          <div class="bg-gradient-to-br from-indigo-600/80 via-purple-600/80 to-pink-600/80 border-4 border-yellow-300 p-8 rounded-3xl max-w-lg mx-auto shadow-2xl star-anim">
+            <span class="text-7xl block mb-2">🏆</span>
+            <p class="text-xs tracking-widest font-extrabold text-yellow-300 uppercase">Nhóm Xuất Sắc Nhất Tiết Học</p>
+            <h2 class="text-5xl font-black text-white my-2">${ceremonyTopGroup.name}</h2>
+            <div class="inline-block bg-white/20 px-5 py-2 rounded-2xl text-xl font-black text-yellow-200 mb-3">
+              Tổng số sao nhiệm vụ: ${ceremonyTopGroup.groupStars || 0} ⭐
+            </div>
+            <p class="text-xs text-white/80">Thành viên: ${ceremonyTopGroup.members.join(", ")}</p>
+          </div>
+        `;
+        soundFanfare();
+        confetti({ particleCount: 150, spread: 100, origin: { y: 0.5 } });
+        btn.classList.add('hidden');
+      }
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.add('hidden');
+    }
+
+    window.onload = init;
+  </script>
+</body>
+</html>
